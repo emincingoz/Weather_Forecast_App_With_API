@@ -13,28 +13,35 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String city = "Ankara";
+  String city = "Istanbul";
   int? temperature;
   var locationData;
-  var woeid;
+  var lat;
+  var lon;
 
   Future<void> getLocationData() async {
+    //locationData = await http.get(Uri.parse(
+    //  'https://www.metaweather.com/api/location/search/?query=$city'));
+
     locationData = await http.get(Uri.parse(
-        'https://www.metaweather.com/api/location/search/?query=Ankara'));
+        'https://api.openweathermap.org/geo/1.0/direct?q=$city&limit=5&appid=a98f4eb51523a442b67e0887b3213729'));
 
     var locationDataParsed = jsonDecode(locationData.body);
-    woeid = locationDataParsed[0]["woeid"];
+    lat = locationDataParsed[0]['lat'];
+    lon = locationDataParsed[0]['lon'];
   }
 
   Future<void> getLocationTemperature() async {
-    var response = await http
-        .get(Uri.parse('https://www.metaweather.com/api/location/$woeid/'));
+    //var response = await http
+    //  .get(Uri.parse('https://www.metaweather.com/api/location/$woeid/'));
+
+    var response = await http.get(Uri.parse(
+        'https://api.openweathermap.org/data/2.5/weather?lat=$lat&lon=$lon&units=metric&appid=a98f4eb51523a442b67e0887b3213729'));
+
     var temperatureDataParsed = jsonDecode(response.body);
 
     setState(() {
-      temperature = (temperatureDataParsed['consolidated_weather'][0]
-              ['the_temp'])
-          .round();
+      temperature = (temperatureDataParsed['main']['temp']).round();
     });
   }
 
@@ -77,11 +84,13 @@ class _HomePageState extends State<HomePage> {
                           style: TextStyle(fontSize: context.mediumValue),
                         ),
                         IconButton(
-                            onPressed: () {
-                              Navigator.push(
+                            onPressed: () async {
+                              city = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                       builder: (newcontext) => SearchPage()));
+                              getDataFromAPI();
+                              setState(() {});
                             },
                             icon: Icon(Icons.search))
                       ],
