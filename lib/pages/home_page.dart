@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:kartal/kartal.dart';
 import 'package:http/http.dart' as http;
+import '../widgets/daily_weather.dart';
 import 'search_page.dart';
 
 class HomePage extends StatefulWidget {
@@ -19,8 +20,9 @@ class _HomePageState extends State<HomePage> {
   var locationData;
   double? lat;
   double? lon;
-  String weatherImage = 'Clear';
+  String weatherName = 'Clear';
   Position? position;
+  String? iconName = '01d';
 
   Future<void> getDevicePosition() async {
     position = await Geolocator.getCurrentPosition(
@@ -29,10 +31,10 @@ class _HomePageState extends State<HomePage> {
     lat = position!.latitude;
     lon = position!.longitude;
 
-    getLocationInformation();
+    getLocationWeatherInformationFromOpenWeather();
   }
 
-  Future<void> getLocationData() async {
+  Future<void> getLocationDataFromOpenWeather() async {
     //locationData = await http.get(Uri.parse(
     //  'https://www.metaweather.com/api/location/search/?query=$city'));
 
@@ -44,7 +46,7 @@ class _HomePageState extends State<HomePage> {
     lon = locationDataParsed[0]['lon'];
   }
 
-  Future<void> getLocationInformation() async {
+  Future<void> getLocationWeatherInformationFromOpenWeather() async {
     //var response = await http
     //  .get(Uri.parse('https://www.metaweather.com/api/location/$woeid/'));
 
@@ -53,11 +55,11 @@ class _HomePageState extends State<HomePage> {
 
     var parsedData = jsonDecode(utf8.decode(response.bodyBytes));
 
-    city = parsedData['name'];
-
     setState(() {
+      city = parsedData['name'];
       temperature = (parsedData['main']['temp']).round();
-      weatherImage = parsedData['weather'][0]['main'];
+      weatherName = parsedData['weather'][0]['main'];
+      iconName = parsedData['weather'][0]['icon'];
     });
   }
 
@@ -74,7 +76,7 @@ class _HomePageState extends State<HomePage> {
       decoration: BoxDecoration(
         image: DecorationImage(
           fit: BoxFit.cover,
-          image: AssetImage("assets/images/$weatherImage.jpg"),
+          image: AssetImage("assets/images/$weatherName.jpg"),
         ),
       ),
       child: Scaffold(
@@ -87,10 +89,10 @@ class _HomePageState extends State<HomePage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      height: context.highValue * 2,
-                      width: context.highValue * 2,
+                      height: context.highValue + context.mediumValue,
+                      width: context.highValue + context.mediumValue,
                       child: Image.network(
-                          'https://openweathermap.org/img/wn/10d@2x.png'),
+                          'https://openweathermap.org/img/wn/$iconName@4x.png'),
                     ),
                     Text(
                       "$temperature° C",
@@ -128,12 +130,38 @@ class _HomePageState extends State<HomePage> {
                                   context,
                                   MaterialPageRoute(
                                       builder: (newcontext) => SearchPage()));
-                              getDataFromAPI();
+                              getDataFromAPIOpenWeather();
                               setState(() {});
                             },
                             icon: Icon(Icons.search))
                       ],
-                    )
+                    ),
+                    SizedBox(
+                      height: context.highValue,
+                    ),
+                    Container(
+                      height: 120,
+
+                      ///
+                      /// Alanı dinamik olarak kullanmak için MediaQuery ile cihazın alanı çekilebilir.
+                      /// Yada FractionallySizedBox kullanarak widthFactor verilebilir.
+                      ///
+                      //width: MediaQuery.of(context).size.width * 0.90,
+                      child: FractionallySizedBox(
+                        widthFactor: 0.9,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: 5,
+                          itemBuilder: (context, index) {
+                            return DailyWeather(
+                              date: 'Pazartesi', //dates[index],
+                              temp: '20', //temps[index],
+                              image: 'c', //images[index],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
                   ],
                 )
               : CircularProgressIndicator(),
@@ -142,9 +170,9 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> getDataFromAPI() async {
-    await getLocationData();
-    await getLocationInformation();
+  Future<void> getDataFromAPIOpenWeather() async {
+    await getLocationDataFromOpenWeather();
+    await getLocationWeatherInformationFromOpenWeather();
   }
 
   Future<void> _determinePosition() async {
